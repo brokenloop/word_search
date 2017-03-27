@@ -2,22 +2,26 @@ from pprint import *
 
 class Grid:
     def __init__(self, fname, dictname):
-        self.searchspace = self.build_space(fname)
+        self.matrix = self.build_matrix(fname)
         self.words, self.prefixes = self.make_dict(dictname)
         self.foundwords = set()
 
 
     def make_dict(self, fname):
+        """ Takes a filename (fname), and returns a set of words and prefixes to these words
+        """
         words = set(x.strip() for x in open(fname))
         prefixes = set()
         for word in words:
-            for i in range(len(word)):
+            for i in range(len(word) + 1):
                 prefixes.add(word[:i])
 
         return words, prefixes
 
 
-    def build_space(self, fname):
+    def build_matrix(self, fname):
+        """ Takes a filename (fname), and returns a list of lists containing the contents
+        """
         txt = open(fname).read()
         lines = txt.replace("\t", "")
         lines = lines.split("\n")
@@ -31,53 +35,71 @@ class Grid:
         return space
 
 
-    def recursive_test(self, sequence, location):
+    def recursive_test(self, sequence, location, direction):
+        """ Recursively searches the matrix for valid words
+            starts at a root location, and advances in a specific direction
+            continues until no valid prefix is found, or it reaches the end of the matrix
+        """
         if sequence in self.prefixes:
             if sequence in self.words and len(sequence) > 3:
+                print("Word found! root:", location, "word:", sequence)
                 self.foundwords.add(sequence)
-            north = [location[0], location[1] + 1]
-            south = [location[0], location[1] - 1]
-            east = [location[0] + 1, location[1]]
-            west = [location[0] - 1, location[1]]
+            next_tile = [location[0] + direction[0], location[1] + direction[1]]
 
-            directions = [north, south, east, west]
-
-            for dir in directions:
-                if self.isvalid(dir[0], dir[1]):
-                    newsequence = sequence
-                    newsequence += self.searchspace[dir[0]][dir[1]]
-                    self.recursive_test(newsequence, dir)
-            return False
-
+            if self.isvalid(next_tile[0], next_tile[1]):
+                newsequence = sequence
+                newsequence += self.matrix[next_tile[0]][next_tile[1]]
+                self.recursive_test(newsequence, next_tile, direction)
         else:
             return False
 
 
     def search(self):
-        for i in range(len(self.searchspace)):
-            for j in range(len(self.searchspace[i])):
-                self.recursive_test(self.searchspace[i][j], [i, j])
+        """ Calls the recursive testing function from every position in the matrix
+        """
+
+        n = [1, 0]
+        s = [-1, 0]
+        e = [0, 1]
+        w = [0, -1]
+        nw = [1, 1]
+        ne = [1, -1]
+        sw = [-1, 1]
+        se = [-1, -1]
+
+        directions = [n, s, e, w, nw, ne, sw, se]
+
+        for i in range(len(self.matrix)):
+            for j in range(len(self.matrix[i])):
+                for dir in directions:
+                    self.recursive_test(self.matrix[i][j], [i, j], dir)
 
 
     def isvalid(self, x, y):
-        if x >= len(self.searchspace[0]) or x < 0:
+        """ Takes coordinates x and y, and checks that they are within the grid
+        """
+        if x >= len(self.matrix) or x < 0:
             return False
-        if y >= len(self.searchspace[0]) or y < 0:
+        if y >= len(self.matrix[0]) or y < 0:
             return False
         else:
             return True
 
 
-
-
-
+def main(fname, dictname):
+    """ Main function
+        Takes a puzzle file (fname) and dictionary file (dictname)
+        prints list of words in the puzzle matrix
+    """
+    grid = Grid(fname, dictname)
+    pprint(grid.matrix)
+    grid.search()
+    print("Words found:", sorted(grid.foundwords))
 
 
 if __name__=="__main__":
+    main("butterfly.txt", "dictionary.txt")
 
-    grid = Grid("test.txt", "dictionary.txt")
-    print(grid.searchspace)
-    grid.search()
-    print(grid.foundwords)
+
 
 
